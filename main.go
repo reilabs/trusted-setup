@@ -1,7 +1,149 @@
 package main
 
-import "fmt"
+import (
+	"context"
+	"log"
+	"os"
+	"path/filepath"
+
+	"github.com/urfave/cli/v3"
+
+	"github.com/reilabs/trusted-setup/cmd"
+)
 
 func main() {
-	fmt.Println("Hello whir")
+	app := &cli.Command{
+		Name:  filepath.Base(os.Args[0]),
+		Usage: "a ZKP Trusted Setup Ceremony Coordinator",
+		Description: "This program allows for initializing a trusted setup ceremony and contributing to it.\n" +
+			"Phase 2 of the ceremony can be initialized from a previously generated Phase 1 file\n" +
+			"or from a Snarkjs powers of tau file. New contributions can be added to Phase 2.\n" +
+			"The contributions can be verified. Proving and verifying keys can be exported from the\n" +
+			"ceremony artifacts.\n\n" +
+			"Note that, as for now, the program requires the input constraint system to be produced\n" +
+			"by Gnark v0.11. The used backend must be Groth16 and the elliptic curve used must be BN254.",
+		Authors: []any{
+			"Wojciech Żmuda <wojciech.zmuda@reilabs.io>",
+		},
+		Copyright: "(c) 2025 Reilabs sp. z o.o.",
+		Action: func(context.Context, *cli.Command) error {
+			return nil
+		},
+		DefaultCommand: "help",
+		Suggest:        true,
+		Commands: []*cli.Command{
+			{
+				Name:   "ptau",
+				Usage:  "Convert a Snarkjs powers of tau file to a Phase 1 file",
+				Action: cmd.PtauToPhase1,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "ptau",
+						Usage:    "Snarkjs powers of tau file",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name:     "phase1",
+						Usage:    "Output Phase 1 file",
+						Required: true,
+					},
+				},
+			},
+			{
+				Name:   "init",
+				Usage:  "Initialize Phase 2 for the given R1CS with a Phase 1 file",
+				Action: cmd.Phase2Init,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "phase1",
+						Usage:    "Phase 1 file",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name:     "r1cs",
+						Usage:    "R1CS file generated from a Gnark circuit",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name:     "phase2",
+						Usage:    "Output path for the Phase 2 file",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name:     "eval",
+						Usage:    "Output path for the Phase 2 evaluations file",
+						Required: true,
+					},
+				},
+			},
+			{
+				Name:   "contribute",
+				Usage:  "Contribute randomness to Phase 2",
+				Action: cmd.Phase2Contribute,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name: "phase2",
+						Usage: "The existing Phase 2 file created in the init step or in the previous run\n" +
+							"of the contribute step.",
+						Required: true,
+					},
+				},
+			},
+			{
+				Name:  "verify",
+				Usage: "Verify randomness contributed to Phase 2",
+				Flags: []cli.Flag{
+					&cli.StringSliceFlag{
+						Name: "phase2",
+						Usage: "List of Phase 2 files to verify the contributions in the order they were\n" +
+							"created. Contributions are verified in pairs, so at least two files (the original\n" +
+							"Phase 2 with one Phase 2 containing contributions) must be provided.",
+						Required: true,
+					},
+				},
+				Action: cmd.Phase2Verify,
+			},
+			{
+				Name:  "keys",
+				Usage: "Extract proving and verifying keys",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "phase1",
+						Usage:    "Phase 1 file used to start the ceremony",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name:     "phase2",
+						Usage:    "Phase 2 file of the last contribution",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name:     "eval",
+						Usage:    "Phase 2 evaluations file generated at the start of the ceremony",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name:     "r1cs",
+						Usage:    "R1CS file generated from a gnark circuit",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name:     "pk",
+						Usage:    "Output path for the proving key",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name:     "vk",
+						Usage:    "Output path for the verifying key",
+						Required: true,
+					},
+				},
+				Action: cmd.ExtractKeys,
+			},
+		},
+	}
+
+	if err := app.Run(context.Background(), os.Args); err != nil {
+		log.Fatal(err)
+	}
 }
