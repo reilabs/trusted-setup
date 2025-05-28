@@ -1,4 +1,4 @@
-package main
+package phase1
 
 import (
 	"os"
@@ -61,9 +61,9 @@ func TestPhase1FromPtau(t *testing.T) {
 	}
 	defer teardown(phase2File)
 
-	ptauFilePath := "test.ptau"
+	ptauFilePath := "phase1_test.ptau"
 
-	if err := phase1FromPtau(ptauFilePath, r1csFilePath, phase2File.Name()); err != nil {
+	if err := FromPtauPath(ptauFilePath, r1csFilePath, phase2File.Name()); err != nil {
 		t.Errorf("phase1FromPtau returned an error: %v", err)
 	}
 }
