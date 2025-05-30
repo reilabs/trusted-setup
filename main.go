@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/urfave/cli/v2"
+
+	"github.com/reilabs/whir-trusted-setup/phase2"
 )
 
 func main() {
