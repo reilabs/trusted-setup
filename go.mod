@@ -1,6 +1,6 @@
 module github.com/reilabs/whir-trusted-setup
 
-go 1.24.3
+go 1.24
 
 require (
 	github.com/consensys/gnark v0.12.0
