@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/urfave/cli/v2"
-
-	"github.com/reilabs/whir-trusted-setup/phase1"
 )
 
 func main() {
@@ -29,9 +27,9 @@ func main() {
 					outputPhase2FilePath := cCtx.String("phase2")
 
 					if ptauFilePath != "" && phase1FilePath == "" {
-						return phase1.FromPtauPath(ptauFilePath, r1csFilePath, outputPhase2FilePath)
+						return phase2.FromPtauPath(ptauFilePath, r1csFilePath, outputPhase2FilePath)
 					} else if phase1FilePath != "" && ptauFilePath == "" {
-						return phase1.FromPhase1Path(phase1FilePath, r1csFilePath, outputPhase2FilePath)
+						return phase2.FromPhase1Path(phase1FilePath, r1csFilePath, outputPhase2FilePath)
 					}
 
 					log.Fatal("Invalid input: either ptau or phase1 file must be specified, but not both.")
