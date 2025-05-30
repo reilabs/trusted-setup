@@ -39,22 +39,20 @@ func main() {
 				},
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name: "ptau",
-						Usage: "Load a snarkjs powers of tau file to convert it to a phase 1 file " +
-							"(required if not using --phase1 flag)",
+						Name:  "ptau",
+						Usage: "Snarkjs powers of tau file (required if not using --phase1 flag)",
 					},
 					&cli.StringFlag{
 						Name:  "phase1",
-						Usage: "Phase 1 file path (required if not using --ptau flag)",
+						Usage: "Phase 1 file (required if not using --ptau flag)",
 					},
 					&cli.StringFlag{
 						Name:     "r1cs",
-						Usage:    "R1CS file path",
+						Usage:    "R1CS file",
 						Required: true,
 					},
 					&cli.StringFlag{
-						Name:     "output",
-						Aliases:  []string{"o"},
+						Name:     "phase2",
 						Usage:    "Output path for the phase 2 file",
 						Required: true,
 					},
