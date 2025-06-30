@@ -25,6 +25,7 @@ func ToFile(ccs constraint.ConstraintSystem, r1csPath string) error {
 		}
 	}(writer)
 
+	log.Printf("Storing R1CS to %s", r1csPath)
 	_, err = ccs.WriteTo(writer)
 	if err != nil {
 		return err
@@ -49,6 +50,7 @@ func FromFile(r1csPath string) (constraint.ConstraintSystem, error) {
 		}
 	}(reader)
 
+	log.Printf("Loading R1CS from %s", r1csPath)
 	r1cs := groth16.NewCS(ecc.BN254)
 	_, err = r1cs.ReadFrom(reader)
 	if err != nil {

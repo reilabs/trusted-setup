@@ -54,7 +54,7 @@ The output Phase 2 file can be used for later contributions.
 - `--r1cs` - The R1CS file generated from a Gnark circuit,
 - `--phase1` - The Phase 1 file,
 - `--phase2` - The output path for the Phase 2 file,
-- `--eval` - The output path for the Phase 2 evaluations file.
+- `--srscommons` - The output path for circuit-independent components of the Groth16 SRS.
 
 ### `contribute`
 
@@ -70,25 +70,30 @@ appended to the name.
 
 ### `verify`
 
-Verify randomness contributed to Phase 2. This step is performed by the Coordinator.
+Verify the last randomness contributed to Phase 2. This step is performed by the Coordinator.
 
-This command accepts a list of Phase 2 files to verify the contributions in the order they were created. The list must
-contain at least two files If the verification is successful, the Coordinator can either:
-- send this contribution file to the next Contributor for further contributions, or
+This command accepts two Phase 2 files to verify the contributions: previous and next. The previous contribution
+is the file that was sent to a Contributor as an input for their contribution process. The next contribution
+is the output of that contribution process, that was sent back by the Contributor to the Coordinator.
+
+If the verification is successful, the Coordinator can either:
+- send the next contribution file to the next Contributor for further contributions, or
 - export the Proving and Verifying Keys (see [`keys`](#keys).)
 
-- `--phase2` - A list of Phase 2 files to verify the contributions in the order they were created.
+- `--phase2prev` - A Phase 2 file being an input to the contribution
+- `--phase2next` - A Phase 2 file that was contributed to.
 
-### `keys`
+### `extract-keys`
 
 Extract the Proving and Verifying Keys. This step is performed by the Coordinator.
 
-This command extracts the Proving and Verifying Keys from the Phase 1, Phase 2, evaluations and R1CS. The output are
-binary files containing the keys.
+This command extracts the Proving and Verifying Keys from the constraint system object, contributions and SRS commons.
+The output are binary files containing the keys.
 
-- `--phase1` - The Phase 1 file used as the input for the [`init`](#init) step,
-- `--phase2` - The Phase 2 file from the last verified contributions,
-- `--eval` - The Phase 2 Evaluations file generated in the [`init`](#init) step,
 - `--r1cs` - The R1CS file generated from the Gnark circuit the ceremony is held for,
+- `--srscommons` - The circuit-independent components of the Groth16 SRS file generated on the [Phase 2 initialization](#init).
+- `--phase2` - A list of Phase 2 files to verify the contributions in the order they were created. Contributions are
+               verified in pairs, so at least two files must be provided. This DOES NOT INCLUDE the original Phase 2.
+               file generated on initialization.
 - `--pk` - The output path for the Proving Key file,
 - `--vk` - The output path for the Verifying Key file.

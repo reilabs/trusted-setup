@@ -15,7 +15,6 @@ import (
 	"github.com/consensys/gnark/std/hash/mimc"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/reilabs/trusted-setup/keys"
 	"github.com/reilabs/trusted-setup/phase1"
 	"github.com/reilabs/trusted-setup/phase2"
 	"github.com/reilabs/trusted-setup/r1cs"
@@ -35,7 +34,7 @@ func TestIntegration(t *testing.T) {
 
 const phase1FileName = "test.phase1"
 const phase2FileName = "test.phase2"
-const phase2evalFileName = "test.eval"
+const srsCommonsFileName = "test.srscommons"
 const r1csFileName = "test.r1cs"
 const pkFileName = "test.pk"
 const vkFileName = "test.vk"
@@ -72,7 +71,7 @@ func teardown() {
 		phase1FileName,
 		phase2FileName,
 		phase2FileName + ".*",
-		phase2evalFileName,
+		srsCommonsFileName,
 		r1csFileName,
 		pkFileName,
 		vkFileName,
@@ -100,40 +99,38 @@ func testPtau(t *testing.T) {
 	p1, err := phase1.FromFile(phase1FileName)
 	assert.NoError(t, err)
 
-	// Check some fields of phase1 to make sure something is there
-	assert.NotEmpty(t, p1.Parameters.G1.Tau)
-	assert.NotEmpty(t, p1.Parameters.G1.AlphaTau)
-	assert.NotEmpty(t, p1.Parameters.G1.BetaTau)
-	assert.NotEmpty(t, p1.Parameters.G2.Tau)
-	assert.NotEmpty(t, p1.Parameters.G2.Beta)
-
-	assert.NotEmpty(t, p1.Hash)
+	// Phase1 has no public fields, so let's assume it is correct if we can
+	// successfully contribute to it.
+	p1beforeContribution, err := phase1.FromFile(phase1FileName)
+	assert.NoError(t, err)
+	p1.Contribute()
+	err = p1beforeContribution.Verify(&p1)
+	assert.NoError(t, err)
 }
 
 func testInit(t *testing.T) {
-	assert.NoError(t, phase2.Init(phase1FileName, r1csFileName, phase2FileName, phase2evalFileName))
+	assert.NoError(t, phase2.Init(phase1FileName, r1csFileName, phase2FileName, srsCommonsFileName))
 
 	p2, err := phase2.FromFile(phase2FileName)
 	assert.NoError(t, err)
 
 	// Check some fields of phase2 to make sure something is there
 	assert.NotEmpty(t, p2.Parameters.G1.Z)
-	assert.NotEmpty(t, p2.Parameters.G1.L)
+	assert.NotEmpty(t, p2.Parameters.G1.PKK)
 	assert.NotEmpty(t, p2.Parameters.G1.Delta.X)
 	assert.NotEmpty(t, p2.Parameters.G1.Delta.Y)
 	assert.NotEmpty(t, p2.Parameters.G2.Delta.X)
 	assert.NotEmpty(t, p2.Parameters.G2.Delta.Y)
-	assert.NotEmpty(t, p2.Hash)
 
-	eval, err := phase2.EvalFromFile(phase2evalFileName)
+	srsCommons, err := phase2.SrsCommonsFromFile(srsCommonsFileName)
 	assert.NoError(t, err)
 
-	// Check some fields of phase2 evaluations to make sure something is there
-	assert.NotEmpty(t, eval.G1.A)
-	assert.NotEmpty(t, eval.G1.B)
-	assert.NotEmpty(t, eval.G1.VKK)
-	assert.NotEmpty(t, eval.G2.B)
-
+	// Check some fields of SRS commons to make sure something is there
+	assert.NotEmpty(t, srsCommons.G1.Tau)
+	assert.NotEmpty(t, srsCommons.G1.BetaTau)
+	assert.NotEmpty(t, srsCommons.G1.AlphaTau)
+	assert.NotEmpty(t, srsCommons.G2.Beta)
+	assert.NotEmpty(t, srsCommons.G2.Tau)
 }
 
 func testContribute(t *testing.T) {
@@ -148,20 +145,21 @@ func testContribute(t *testing.T) {
 }
 
 func testVerify(t *testing.T) {
-	assert.NoError(t, phase2.Verify(phase2Contributed))
+	for i := 1; i < 3; i++ {
+		err := phase2.Verify(phase2Contributed[i], phase2Contributed[i+1])
+		assert.NoError(t, err)
+	}
 }
 
 func testExtractKeys(t *testing.T) {
-	lastContributionFileName := phase2Contributed[len(phase2Contributed)-1]
 	assert.NoError(
 		t,
-		keys.Extract(
-			phase1FileName, lastContributionFileName, phase2evalFileName,
-			r1csFileName, pkFileName, vkFileName,
+		phase2.ExtractKeys(
+			r1csFileName, srsCommonsFileName, phase2Contributed[1:], pkFileName, vkFileName,
 		),
 	)
 
-	pk, vk, err := keys.FromFile(pkFileName, vkFileName)
+	pk, vk, err := phase2.PkVkFromFile(pkFileName, vkFileName)
 	assert.NoError(t, err)
 	ccs, err := r1cs.FromFile(r1csFileName)
 	assert.NoError(t, err)

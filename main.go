@@ -21,7 +21,7 @@ func main() {
 			"The contributions can be verified. Proving and verifying keys can be exported from the\n" +
 			"ceremony artifacts.\n\n" +
 			"Note that, as for now, the program requires the input constraint system to be produced\n" +
-			"by Gnark v0.11. The used backend must be Groth16 and the elliptic curve used must be BN254.",
+			"by Gnark v0.13. The used backend must be Groth16 and the elliptic curve used must be BN254.",
 		Authors: []any{
 			"Wojciech Żmuda <wojciech.zmuda@reilabs.io>",
 		},
@@ -70,8 +70,8 @@ func main() {
 						Required: true,
 					},
 					&cli.StringFlag{
-						Name:     "eval",
-						Usage:    "Output path for the Phase 2 evaluations file",
+						Name:     "srscommons",
+						Usage:    "Output path for circuit-independent components of the Groth16 SRS",
 						Required: true,
 					},
 				},
@@ -90,41 +90,43 @@ func main() {
 				},
 			},
 			{
-				Name:  "verify",
-				Usage: "Verify randomness contributed to Phase 2",
+				Name:   "verify",
+				Usage:  "Verify the last randomness contributed to Phase 2",
+				Action: cmd.Phase2Verify,
 				Flags: []cli.Flag{
-					&cli.StringSliceFlag{
-						Name: "phase2",
-						Usage: "List of Phase 2 files to verify the contributions in the order they were\n" +
-							"created. Contributions are verified in pairs, so at least two files (the original\n" +
-							"Phase 2 with one Phase 2 containing contributions) must be provided.",
+					&cli.StringFlag{
+						Name:     "phase2prev",
+						Usage:    "Phase 2 file being an input to the contribution",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name:     "phase2next",
+						Usage:    "Phase 2 file that was contributed to",
 						Required: true,
 					},
 				},
-				Action: cmd.Phase2Verify,
 			},
 			{
-				Name:  "keys",
-				Usage: "Extract proving and verifying keys",
+				Name:   "extract-keys",
+				Usage:  "Extract Proving and Verifying Keys",
+				Action: cmd.Phase2ExtractKeys,
 				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:     "phase1",
-						Usage:    "Phase 1 file used to start the ceremony",
-						Required: true,
-					},
-					&cli.StringFlag{
-						Name:     "phase2",
-						Usage:    "Phase 2 file of the last contribution",
-						Required: true,
-					},
-					&cli.StringFlag{
-						Name:     "eval",
-						Usage:    "Phase 2 evaluations file generated at the start of the ceremony",
-						Required: true,
-					},
 					&cli.StringFlag{
 						Name:     "r1cs",
 						Usage:    "R1CS file generated from a gnark circuit",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name: "srscommons",
+						Usage: "Circuit-independent components of the Groth16 SRS file generated on the Phase 2" +
+							" initialization",
+						Required: true,
+					},
+					&cli.StringSliceFlag{
+						Name: "phase2",
+						Usage: "List of Phase 2 files to verify the contributions in the order they were\n" +
+							"created. Contributions are verified in pairs, so at least two files must be provided.\n" +
+							" This DOES NOT INCLUDE the original Phase 2 file generated on initialization.",
 						Required: true,
 					},
 					&cli.StringFlag{
@@ -138,7 +140,6 @@ func main() {
 						Required: true,
 					},
 				},
-				Action: cmd.ExtractKeys,
 			},
 		},
 	}
@@ -146,4 +147,5 @@ func main() {
 	if err := app.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
 	}
+	log.Print("Operation successful")
 }
