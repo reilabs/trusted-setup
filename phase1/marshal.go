@@ -1,9 +1,6 @@
 package phase1
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/gob"
 	"log"
 	"os"
 
@@ -14,23 +11,6 @@ import (
 //
 // Returns nil on success and error on failure.
 func ToFile(phase1 mpcsetup.Phase1, phase1Path string) error {
-	// Phase1 may not have the hash field populated (probably a bug in ptau-deserializer).
-	// Populate it if it's empty before serializing.
-	if len(phase1.Hash) == 0 {
-		var serializedPhase1 bytes.Buffer
-		enc := gob.NewEncoder(&serializedPhase1)
-		err := enc.Encode(phase1.Parameters)
-		if err != nil {
-			return err
-		}
-		err = enc.Encode(phase1.PublicKeys)
-		if err != nil {
-			return err
-		}
-		hash := sha256.Sum256(serializedPhase1.Bytes())
-		phase1.Hash = hash[:]
-	}
-
 	writer, err := os.Create(phase1Path)
 	if err != nil {
 		return err
@@ -41,6 +21,8 @@ func ToFile(phase1 mpcsetup.Phase1, phase1Path string) error {
 			log.Printf("Error closing phase1 writer: %v", err)
 		}
 	}(writer)
+
+	log.Printf("Storing Phase 1 to %s", phase1Path)
 	_, err = phase1.WriteTo(writer)
 	if err != nil {
 		return err
@@ -64,6 +46,7 @@ func FromFile(phase1Path string) (phase1 mpcsetup.Phase1, err error) {
 		}
 	}(reader)
 
+	log.Printf("Loading Phase 1 from %s", phase1Path)
 	_, err = phase1.ReadFrom(reader)
 	if err != nil {
 		return mpcsetup.Phase1{}, err

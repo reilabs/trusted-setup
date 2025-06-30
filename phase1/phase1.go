@@ -2,6 +2,8 @@
 package phase1
 
 import (
+	"log"
+
 	deserializer "github.com/worldcoin/ptau-deserializer/deserialize"
 )
 
@@ -10,11 +12,13 @@ import (
 //
 // Returns nil on success and error on failure.
 func FromPtau(ptauFilePath string, outputPhase1FilePath string) error {
+	log.Printf("Loading Starkjs powers of tau from %s", ptauFilePath)
 	ptau, err := deserializer.ReadPtau(ptauFilePath)
 	if err != nil {
 		return err
 	}
 
+	log.Print("Converting Starkjs powers of tau to Phase 1")
 	phase1, err := deserializer.ConvertPtauToPhase1(ptau)
 	if err != nil {
 		return err
