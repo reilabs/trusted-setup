@@ -4,8 +4,6 @@ package phase2
 import (
 	"fmt"
 	"log"
-	"regexp"
-	"time"
 
 	"github.com/consensys/gnark/backend/groth16/bn254/mpcsetup"
 	cs "github.com/consensys/gnark/constraint/bn254"
@@ -52,46 +50,23 @@ func Init(
 	return nil
 }
 
-// updateTimestamp appends a timestamp to the given string if not present, or updates the timestamp if present.
-//
-// The timestamp is appended to the string in the format: `.YYYYMMDDHHMMSS.uuuuuu`, where `u` stands for microsecond.
-// For an example `foo.bar` string, the new string will be `foo.bar.202506142137.569775`, provided updateTimestamp
-// is called on June 14th, 2025 at 9:21:37.569775 PM CEST.
-//
-// Always succeeds. Returns the timestamped input string.
-func updateTimestamp(str string) string {
-	timestampRegex := regexp.MustCompile(`\.\d{14}.\d{6}$`)
-	currentTimestamp := time.Now().Format("20060102150405.000000")
-
-	if timestampRegex.MatchString(str) {
-		return timestampRegex.ReplaceAllString(str, "."+currentTimestamp)
-	}
-
-	return str + "." + currentTimestamp
-}
-
 // Contribute contributes randomness to the given Phase 2 object.
 //
-// The Phase 2 object is deserialized from the file specified by phase2FilePath. The randomness is contributed to the
-// Phase 2 object, and the updated object is written to a new file with a timestamp appended to the original file name.
-// The input file is not modified.
-//
-// Returns the file name of the Phase 2 object containing the contributions and nil on success and empty string
-// and error on failure.
-func Contribute(phase2FilePath string) (newFileName string, err error) {
-	p2, err := FromFile(phase2FilePath)
+// The Phase 2 object is deserialized from the file specified by inputPhase2FilePath. The randomness is contributed to
+// the Phase 2 object, and the updated object is written outputPhase2FilePath. The input file is not modified.
+func Contribute(inputPhase2FilePath, outputPhase2FilePath string) error {
+	p2, err := FromFile(inputPhase2FilePath)
 	if err != nil {
-		return "", err
+		return err
 	}
 	log.Print("Contributing randomness to Phase 2")
 	p2.Contribute()
 
-	newFileName = updateTimestamp(phase2FilePath)
-	err = ToFile(p2, newFileName)
+	err = ToFile(p2, outputPhase2FilePath)
 	if err != nil {
-		return "", err
+		return err
 	}
-	return newFileName, err
+	return err
 }
 
 // Verify verifies the given Phase 2 objects for the correctness of their contributions.
