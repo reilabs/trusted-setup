@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,8 +41,6 @@ const r1csFileName = "test.r1cs"
 const pkFileName = "test.pk"
 const vkFileName = "test.vk"
 
-var phase2Contributions []string
-
 func setup() {
 	ccs, err := buildCcs()
 	if err != nil {
@@ -55,12 +55,15 @@ func setup() {
 func teardown() {
 	filesToRemove := []string{
 		phase1FileName,
-		phase2FileName,
-		phase2FileName + ".*",
 		srsCommonsFileName,
 		r1csFileName,
 		pkFileName,
 		vkFileName,
+	}
+
+	matches, err := filepath.Glob(phase2FileName + "*")
+	if err == nil {
+		filesToRemove = append(filesToRemove, matches...)
 	}
 
 	for _, fileName := range filesToRemove {
@@ -120,17 +123,22 @@ func testInit(t *testing.T) {
 }
 
 func testContribute(t *testing.T) {
-	phase2Contributions = make([]string, 0, 4)
-	phase2Contributions = append(phase2Contributions, phase2FileName)
+	phase2Contributions := []string{phase2FileName}
 
 	for i := 0; i < 3; i++ {
-		contribFileName, err := phase2.Contribute(phase2Contributions[i])
-		assert.NoError(t, err)
+		contribFileName := strings.Join([]string{phase2FileName, strconv.Itoa(i)}, ".")
+		assert.NoError(t, phase2.Contribute(phase2Contributions[i], contribFileName))
 		phase2Contributions = append(phase2Contributions, contribFileName)
 	}
 }
 
 func testVerify(t *testing.T) {
+	phase2Contributions := []string{phase2FileName}
+	for i := 0; i < 3; i++ {
+		contribFileName := strings.Join([]string{phase2FileName, strconv.Itoa(i)}, ".")
+		phase2Contributions = append(phase2Contributions, contribFileName)
+	}
+
 	for i := 1; i < 3; i++ {
 		err := phase2.Verify(phase2Contributions[i], phase2Contributions[i+1])
 		assert.NoError(t, err)
@@ -138,6 +146,12 @@ func testVerify(t *testing.T) {
 }
 
 func testExtractKeys(t *testing.T) {
+	phase2Contributions := []string{phase2FileName}
+	for i := 0; i < 3; i++ {
+		contribFileName := strings.Join([]string{phase2FileName, strconv.Itoa(i)}, ".")
+		phase2Contributions = append(phase2Contributions, contribFileName)
+	}
+
 	assert.NoError(
 		t,
 		phase2.ExtractKeys(
