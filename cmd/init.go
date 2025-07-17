@@ -8,15 +8,20 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"github.com/reilabs/trusted-setup/phase2"
-	"github.com/reilabs/trusted-setup/randomness"
+	"github.com/reilabs/trusted-setup/utils/randomness"
 )
 
 func Phase2Init(_ context.Context, cmd *cli.Command) error {
+	rand, err := randomness.NewDrandProvider()
+	if err != nil {
+		return err
+	}
+	beacon := rand.GetBeacon()
+
 	phase1FilePath := cmd.String("phase1")
 	r1csFilePath := cmd.String("r1cs")
 	outputPhase2FilePath := cmd.String("phase2")
 	outputSrsCommonsFilePath := cmd.String("srscommons")
-	beacon := randomness.GetBeacon()
 	log.Printf(
 		"Initializing Phase 2:\n"+
 			"\tLoad Phase 1 from:                %s\n"+
