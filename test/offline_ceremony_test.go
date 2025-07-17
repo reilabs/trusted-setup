@@ -14,6 +14,7 @@ import (
 	"github.com/reilabs/trusted-setup/phase1"
 	"github.com/reilabs/trusted-setup/phase2"
 	"github.com/reilabs/trusted-setup/r1cs"
+	"github.com/reilabs/trusted-setup/utils/randomness"
 )
 
 // testOfflineCeremony verifies the trusted setup ceremony in the offline mode.
@@ -42,7 +43,7 @@ const r1csFileName = "test.r1cs"
 const pkFileName = "test.pk"
 const vkFileName = "test.vk"
 
-var beacon = bytes.Repeat([]byte{0x42}, 32)
+var rand randomness.MockProvider
 
 func setup() {
 	ccs, err := buildCcs()
@@ -53,6 +54,9 @@ func setup() {
 	if err != nil {
 		panic(err)
 	}
+
+	mockBeacon := bytes.Repeat([]byte{0x42}, 32)
+	rand = randomness.MockProvider{Beacon: mockBeacon}
 }
 
 func teardown() {
@@ -101,7 +105,7 @@ func testPtau(t *testing.T) {
 }
 
 func testInit(t *testing.T) {
-	assert.NoError(t, phase2.Init(phase1FileName, r1csFileName, phase2FileName, srsCommonsFileName, beacon))
+	assert.NoError(t, phase2.Init(phase1FileName, r1csFileName, phase2FileName, srsCommonsFileName, rand.GetBeacon()))
 
 	p2, err := phase2.FromFile(phase2FileName)
 	assert.NoError(t, err)
@@ -158,7 +162,7 @@ func testExtractKeys(t *testing.T) {
 	assert.NoError(
 		t,
 		phase2.ExtractKeys(
-			r1csFileName, srsCommonsFileName, phase2Contributions[1:], pkFileName, vkFileName, beacon,
+			r1csFileName, srsCommonsFileName, phase2Contributions[1:], pkFileName, vkFileName, rand.GetBeacon(),
 		),
 	)
 }
