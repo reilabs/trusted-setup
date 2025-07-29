@@ -1,6 +1,7 @@
 package test
 
 import (
+	"bytes"
 	"log"
 	"os"
 	"path/filepath"
@@ -40,6 +41,8 @@ const srsCommonsFileName = "test.srscommons"
 const r1csFileName = "test.r1cs"
 const pkFileName = "test.pk"
 const vkFileName = "test.vk"
+
+var beacon = bytes.Repeat([]byte{0x42}, 32)
 
 func setup() {
 	ccs, err := buildCcs()
@@ -98,7 +101,7 @@ func testPtau(t *testing.T) {
 }
 
 func testInit(t *testing.T) {
-	assert.NoError(t, phase2.Init(phase1FileName, r1csFileName, phase2FileName, srsCommonsFileName))
+	assert.NoError(t, phase2.Init(phase1FileName, r1csFileName, phase2FileName, srsCommonsFileName, beacon))
 
 	p2, err := phase2.FromFile(phase2FileName)
 	assert.NoError(t, err)
@@ -155,7 +158,7 @@ func testExtractKeys(t *testing.T) {
 	assert.NoError(
 		t,
 		phase2.ExtractKeys(
-			r1csFileName, srsCommonsFileName, phase2Contributions[1:], pkFileName, vkFileName,
+			r1csFileName, srsCommonsFileName, phase2Contributions[1:], pkFileName, vkFileName, beacon,
 		),
 	)
 }

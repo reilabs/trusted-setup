@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"log"
 
@@ -33,15 +34,20 @@ func Phase2ExtractKeys(_ context.Context, cmd *cli.Command) error {
 	phase2FilePaths := cmd.StringSlice("phase2")
 	pkFilePath := cmd.String("pk")
 	vkFilePath := cmd.String("vk")
+	beacon, err := hex.DecodeString(cmd.String("beacon"))
+	if err != nil {
+		return err
+	}
 	log.Printf(
 		"Verify multiple Phase 2 contributions:\n"+
 			"\tLoad R1CS from:         %s\n"+
-			"\tLoad SRS commons from:  %s\n"+
+			"\tLoad SRS commons from:  %s (beacon: %x)\n"+
 			"\tLoad Phase 2 from:      %s\n"+
 			"\tStore Proving Key to:   %s\n"+
 			"\tStore Verifying Key to: %s\n",
 		r1csFilePath,
 		srsCommonsFilePath,
+		beacon,
 		phase2FilePaths,
 		pkFilePath,
 		vkFilePath,
@@ -50,5 +56,5 @@ func Phase2ExtractKeys(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("one of the required file paths is empty")
 	}
 
-	return phase2.ExtractKeys(r1csFilePath, srsCommonsFilePath, phase2FilePaths, pkFilePath, vkFilePath)
+	return phase2.ExtractKeys(r1csFilePath, srsCommonsFilePath, phase2FilePaths, pkFilePath, vkFilePath, beacon)
 }

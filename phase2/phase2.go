@@ -10,17 +10,18 @@ import (
 
 	"github.com/reilabs/trusted-setup/phase1"
 	"github.com/reilabs/trusted-setup/r1cs"
-	"github.com/reilabs/trusted-setup/randomness"
 )
 
 // Init initializes the multi-party computation Phase 2 object based on a serialized Phase 1 and R1CS objects.
 //
 // The input serialized Phase 1 object is given as phase1FilePath. The input serialized R1CS object is given as r1csFilePath.
-// The output Phase 2 object is written to outputPhase2FilePath.
+// The random value needed to generate SRS commons is given as beacon.
+//
+// The output Phase 2 object is written to outputPhase2FilePath, and the SRS commons file is written to outputSrsCommonsPath.
 //
 // Returns nil on success and error on failure.
 func Init(
-	phase1FilePath, r1csFilePath, outputPhase2FilePath, outputSrsCommonsPath string,
+	phase1FilePath, r1csFilePath, outputPhase2FilePath, outputSrsCommonsPath string, beacon []byte,
 ) error {
 	ccs, err := r1cs.FromFile(r1csFilePath)
 	if err != nil {
@@ -32,8 +33,8 @@ func Init(
 		return err
 	}
 
-	log.Printf("Generating SRS commons form Phase 1 (beacon: %x)", randomness.GetBeacon())
-	srsCommons := p1.Seal(randomness.GetBeacon())
+	log.Print("Generating SRS commons form Phase 1")
+	srsCommons := p1.Seal(beacon)
 	err = SrsCommonsToFile(srsCommons, outputSrsCommonsPath)
 	if err != nil {
 		return err
@@ -105,11 +106,15 @@ func Verify(phase2prevFilePath, phase2nextFilePath string) error {
 // The constraint system used for Phase 2 initialization and the SRS Commons object being the result if the initialization
 // must be provided in the form of file paths.
 //
+// The random value needed to extract keys from contributions is given as beacon. It must be the same value passed
+// to Init when generating SRS that is now being passed to ExtractKeys as srsCommonsFilePath.
+//
 // The output proving key is written to outputPkFilePath. The output verification key is written to outputVkFilePath.
 //
 // Returns nil on success and error on failure.
 func ExtractKeys(
 	r1csFilePath, srsCommonsFilePath string, phase2FilePaths []string, outputPkFilePath, outputVkFilePath string,
+	beacon []byte,
 ) error {
 	if len(phase2FilePaths) < 2 {
 		return fmt.Errorf("at least two phase 2 files must be provided")
@@ -133,8 +138,8 @@ func ExtractKeys(
 		phase2s = append(phase2s, &p2)
 	}
 
-	log.Printf("Verifying all Phase 2 contributions and generating Keys (beacon: %x)", randomness.GetBeacon())
-	pk, vk, err := mpcsetup.VerifyPhase2(ccs.(*cs.R1CS), &srsCommons, randomness.GetBeacon(), phase2s...)
+	log.Print("Verifying all Phase 2 contributions and generating Keys")
+	pk, vk, err := mpcsetup.VerifyPhase2(ccs.(*cs.R1CS), &srsCommons, beacon, phase2s...)
 	if err != nil {
 		return err
 	}
