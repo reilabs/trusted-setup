@@ -122,6 +122,11 @@ func main() {
 							" initialization",
 						Required: true,
 					},
+					&cli.StringFlag{
+						Name:     "beacon",
+						Usage:    "Random string generated on the Phase 2 initialization",
+						Required: true,
+					},
 					&cli.StringSliceFlag{
 						Name: "phase2",
 						Usage: "List of Phase 2 files to verify the contributions in the order they were\n" +

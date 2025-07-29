@@ -51,6 +51,8 @@ see the [Constraints](#Constraints) section for more information.
 
 The output Phase 2 file can be used for later contributions.
 
+The command outputs a beacon value, which must then be passed as an argument to [`extract-keys`](#extract-keys).
+
 - `--r1cs` - The R1CS file generated from a Gnark circuit,
 - `--phase1` - The Phase 1 file,
 - `--phase2` - The output path for the Phase 2 file,
@@ -92,6 +94,7 @@ The output are binary files containing the keys.
 
 - `--r1cs` - The R1CS file generated from the Gnark circuit the ceremony is held for,
 - `--srscommons` - The circuit-independent components of the Groth16 SRS file generated on the [Phase 2 initialization](#init).
+- `--beacon` - The beacon value output by the [`init`](#init) command.
 - `--phase2` - A list of Phase 2 files to verify the contributions in the order they were created. Contributions are
                verified in pairs, so at least two files must be provided. This DOES NOT INCLUDE the original Phase 2.
                file generated on initialization.
