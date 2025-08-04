@@ -10,30 +10,6 @@ import (
 	"github.com/consensys/gnark/constraint"
 )
 
-// ToFile writes the R1CS constraint system provided in ccs to a file specified by r1csPath.
-//
-// Returns nil on success and error on failure.
-func ToFile(ccs constraint.ConstraintSystem, r1csPath string) error {
-	writer, err := os.Create(r1csPath)
-	if err != nil {
-		return err
-	}
-	defer func(writer *os.File) {
-		err := writer.Close()
-		if err != nil {
-			log.Printf("Error closing r1cs writer: %v", err)
-		}
-	}(writer)
-
-	log.Printf("Storing R1CS to %s", r1csPath)
-	_, err = ccs.WriteTo(writer)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // FromFile reads the R1CS constraint system from the file specified by r1csPath and returns the constraint system
 // object.
 //

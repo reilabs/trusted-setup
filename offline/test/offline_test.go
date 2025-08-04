@@ -37,24 +37,48 @@ func TestOfflineCeremony(t *testing.T) {
 	teardown()
 }
 
-const phase1FileName = "test.phase1"
-const phase2FileName = "test.phase2"
-const srsCommonsFileName = "test.srscommons"
-const r1csFileName = "test.r1cs"
-const pkFileName = "test.pk"
-const vkFileName = "test.vk"
+var (
+	r1csFileName       string
+	phase1FileName     string
+	phase2FileName     string
+	srsCommonsFileName string
+	pkFileName         string
+	vkFileName         string
+	rand               randomness.MockProvider
+)
 
-var rand randomness.MockProvider
+func createTempFile(pattern string) *os.File {
+	f, err := os.CreateTemp("", pattern)
+	if err != nil {
+		panic(err)
+	}
+
+	return f
+}
 
 func setup() {
 	ccs, err := test_circuit.BuildCcs()
 	if err != nil {
 		panic(err)
 	}
-	err = r1cs.ToFile(ccs, r1csFileName)
+
+	fCcs := createTempFile("r1cs")
+	r1csFileName = fCcs.Name()
+	_, err = ccs.WriteTo(fCcs)
 	if err != nil {
 		panic(err)
 	}
+
+	fP1 := createTempFile("phase1")
+	phase1FileName = fP1.Name()
+	fP2 := createTempFile("phase2")
+	phase2FileName = fP2.Name()
+	fSrs := createTempFile("srsCommons")
+	srsCommonsFileName = fSrs.Name()
+	fPk := createTempFile("pk")
+	pkFileName = fPk.Name()
+	fVk := createTempFile("vk")
+	vkFileName = fVk.Name()
 
 	mockBeacon := bytes.Repeat([]byte{0x42}, 32)
 	rand = randomness.MockProvider{Beacon: mockBeacon}
