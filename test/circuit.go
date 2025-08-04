@@ -1,4 +1,4 @@
-package test
+package test_circuit
 
 import (
 	"github.com/consensys/gnark-crypto/ecc"
@@ -11,12 +11,12 @@ import (
 	"github.com/consensys/gnark/std/hash/mimc"
 )
 
-type testCircuit struct {
+type TestCircuit struct {
 	PreImage frontend.Variable
 	Hash     frontend.Variable `gnark:",public"`
 }
 
-func (circuit *testCircuit) Define(api frontend.API) error {
+func (circuit *TestCircuit) Define(api frontend.API) error {
 	mimc, _ := mimc.NewMiMC(api)
 	mimc.Write(circuit.PreImage)
 	api.AssertIsEqual(circuit.Hash, mimc.Sum())
@@ -24,12 +24,12 @@ func (circuit *testCircuit) Define(api frontend.API) error {
 	return nil
 }
 
-func buildCcs() (constraint.ConstraintSystem, error) {
-	circuit := &testCircuit{}
+func BuildCcs() (constraint.ConstraintSystem, error) {
+	circuit := &TestCircuit{}
 	return frontend.Compile(ecc.BN254.ScalarField(), gnark_r1cs.NewBuilder, circuit)
 }
 
-func proveAndVerify(ccs constraint.ConstraintSystem, pk groth16.ProvingKey, vk groth16.VerifyingKey) error {
+func ProveAndVerify(ccs constraint.ConstraintSystem, pk groth16.ProvingKey, vk groth16.VerifyingKey) error {
 	var preImage, hash fr.Element
 	m := native_mimc.NewMiMC()
 	_, err := m.Write(preImage.Marshal())
@@ -38,7 +38,7 @@ func proveAndVerify(ccs constraint.ConstraintSystem, pk groth16.ProvingKey, vk g
 	}
 	hash.SetBytes(m.Sum(nil))
 
-	witness, err := frontend.NewWitness(&testCircuit{PreImage: preImage, Hash: hash}, ecc.BN254.ScalarField())
+	witness, err := frontend.NewWitness(&TestCircuit{PreImage: preImage, Hash: hash}, ecc.BN254.ScalarField())
 	if err != nil {
 		return err
 	}
