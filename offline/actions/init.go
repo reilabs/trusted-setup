@@ -12,7 +12,7 @@ import (
 )
 
 func Phase2Init(_ context.Context, cmd *cli.Command) error {
-	rand, err := randomness.NewDrandProvider()
+	rand, err := randomness.New()
 	if err != nil {
 		return err
 	}
