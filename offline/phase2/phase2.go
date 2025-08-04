@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/consensys/gnark/backend/groth16/bn254/mpcsetup"
-	cs "github.com/consensys/gnark/constraint/bn254"
 
 	"github.com/reilabs/trusted-setup/offline/phase1"
 	"github.com/reilabs/trusted-setup/offline/r1cs"
@@ -35,15 +34,15 @@ func Init(
 
 	log.Print("Generating SRS commons form Phase 1")
 	srsCommons := p1.Seal(beacon)
-	err = SrsCommonsToFile(srsCommons, outputSrsCommonsPath)
+	err = SrsCommonsToFile(&srsCommons, outputSrsCommonsPath)
 	if err != nil {
 		return err
 	}
 
 	log.Print("Initializing Phase 2")
 	p2 := mpcsetup.Phase2{}
-	_ = p2.Initialize(ccs.(*cs.R1CS), &srsCommons)
-	err = ToFile(p2, outputPhase2FilePath)
+	_ = p2.Initialize(ccs, &srsCommons)
+	err = ToFile(&p2, outputPhase2FilePath)
 	if err != nil {
 		return err
 	}
@@ -88,7 +87,7 @@ func Verify(phase2prevFilePath, phase2nextFilePath string) error {
 	}
 
 	log.Print("Verifying the most recent Phase 2 against the previous step")
-	err = prev.Verify(&next)
+	err = prev.Verify(next)
 	if err != nil {
 		return err
 	}
@@ -135,11 +134,11 @@ func ExtractKeys(
 		if err != nil {
 			return err
 		}
-		phase2s = append(phase2s, &p2)
+		phase2s = append(phase2s, p2)
 	}
 
 	log.Print("Verifying all Phase 2 contributions and generating Keys")
-	pk, vk, err := mpcsetup.VerifyPhase2(ccs.(*cs.R1CS), &srsCommons, beacon, phase2s...)
+	pk, vk, err := mpcsetup.VerifyPhase2(ccs, srsCommons, beacon, phase2s...)
 	if err != nil {
 		return err
 	}
