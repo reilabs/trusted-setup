@@ -1,6 +1,8 @@
 .idea/
 
-*.ph1
-*.ph2
+# Generated protobuf code
+**/ceremony.pb.go
+**/ceremony_grpc.pb.go
 
 trusted-setup
+.DS_Store

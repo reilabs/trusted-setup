@@ -1,0 +1,7 @@
+{
+  "ceremonyName": "test ceremony",
+  "host": "127.0.0.1",
+  "port": 7312,
+  "r1cs": "resources/server.r1cs",
+  "phase1": "resources/server.ph1"
+}

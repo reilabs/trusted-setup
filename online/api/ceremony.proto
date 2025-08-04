@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+// !!!!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!!!!!!!!
+// Please bump ProtocolVersion after any change is done here, to prevent clients from previous
+// releases from connecting to servers using the updated protocol.
+//
+// For local testing, run `go generate ./...` after changing this file.
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+package ceremony;
+
+option go_package = "github.com/reilabs/trusted-setup/api;api";
+
+import "google/protobuf/empty.proto";
+
+// CeremonyService specifies protocol methods and handlers.
+//
+// Clients connected to the server will be able to invoke these handlers on the server side.
+// The server implements handlers for these methods. Clients know this API and are able to call
+// these methods.
+service CeremonyService {
+  // Join is the first method that clients call after connecting to server.
+  //
+  // It establishes the ceremony session between client and server. The server accepts
+  // or rejects the connection based on the request information presented by the client.
+  rpc Join(JoinRequest) returns (JoinResponse);
+
+  // WaitForTurn is a server-streaming RPC where the server notifies the client when
+  // it is their turn to contribute.
+  rpc WaitForTurn(google.protobuf.Empty) returns (stream TurnNotification);
+
+  // WaitForTurn is a server-streaming RPC where the server sends the last verified
+  // contribution to the client, so they can contribute new randomness to it.
+  rpc DownloadContribution(google.protobuf.Empty) returns (stream DataChunk);
+
+  // WaitForTurn is a client-streaming RPC where the client sends their contribution
+  // to the client for verification.
+  rpc UploadContribution(stream DataChunk) returns (UploadResponse);
+}
+
+// JoinRequest is sent by the client requesting the participation in the ceremony.
+message JoinRequest {
+  // version contains the protocol version supported by the client.
+  uint32 version = 1;
+}
+
+// JoinResponse is sent by the server to the client wanting to join the ceremony.
+message JoinResponse {
+  // isAccepted contains the decision if the requesting client can participate.
+  bool isAccepted = 1;
+  // ceremonyName contains the name of the ceremony that the client is participating in. Sent by the server for
+  // informational purposes.
+  string ceremonyName = 2;
+  // rejectionReason contains the reason of the rejection, if the server does not allow the client to participate.
+  // Valid only if isAccepted == false.
+  string rejectionReason = 3;
+}
+
+// TurnNotification notifies the client when it's their turn to contribute.
+message TurnNotification {
+  // canContribute is true if the client is now allowed to contribute.
+  bool canContribute = 1;
+  // positionInQueue updates the client's current position in queue.
+  // If positionInQueue == 0, this is the client's turn.
+  uint32 positionInQueue = 2;
+}
+
+// DataChunk contains a chunk of data sent between client and server.
+message DataChunk {
+  bytes data = 1;
+}
+
+// UploadResponse is sent by the server to the client after they submit their contribution.
+message UploadResponse {
+  // isValid is true if the contribution was considered valid and was accepted by server.
+  bool isValid = 1;
+  // rejectionReason contains the reason of the rejection, if server does not accept client's contribution.
+  // Valid only if isValid == false.
+  string rejectionReason = 2;
+}

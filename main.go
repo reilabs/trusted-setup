@@ -9,13 +9,17 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"github.com/reilabs/trusted-setup/offline"
+	"github.com/reilabs/trusted-setup/online"
 )
 
 func main() {
 	app := &cli.Command{
 		Name:  filepath.Base(os.Args[0]),
 		Usage: "a ZKP Trusted Setup Ceremony Coordinator",
-		Description: "This program allows for initializing a trusted setup ceremony and contributing to it.\n" +
+		Description: "This program allows for initializing a trusted setup ceremony and contributing to it.\n\n" +
+			"The program has two modes:\n" +
+			"- the online mode: run an automated ceremony server and let clients connect and contribute\n" +
+			"- the offline mode: orchestrate the ceremony yourself, manually managing contributions\n\n" +
 			"Phase 2 of the ceremony can be initialized from a previously generated Phase 1 file\n" +
 			"or from a Snarkjs powers of tau file. New contributions can be added to Phase 2.\n" +
 			"The contributions can be verified. Proving and verifying keys can be exported from the\n" +
@@ -31,8 +35,11 @@ func main() {
 		},
 		DefaultCommand: "help",
 		Suggest:        true,
-		Commands:       offline.Commands,
+		Commands:       []*cli.Command{},
 	}
+
+	app.Commands = append(app.Commands, offline.Commands...)
+	app.Commands = append(app.Commands, online.Commands...)
 
 	if err := app.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
