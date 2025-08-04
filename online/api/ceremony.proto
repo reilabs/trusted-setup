@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+// For local testing, run `go generate ./...` after changing this file.
+
+package ceremony;
+
+option go_package = "github.com/reilabs/trusted-setup/api;api";
+
+service CeremonyService {
+  // Contribute handles the whole ceremony process.
+  //
+  // After calling the method, the client will receive the stream of ContributeResponse containing
+  // TurnNotification messages. They indicate the position of the contributor in the queue
+  // and serve as a notification of the waiting progress.
+  //
+  // After TurnNotification with CanContribute == true arrives, the stream of DataChunk will arrive.
+  // They contain the last verified contribution accepted by the server. The client can reconstruct
+  // the Phase 2 object from them and contribute to it.
+  //
+  // Afterwards, the client is allow to stream back DataChunk of their contribution.
+  //
+  // When this is done, the server will reply with ValidationResponse. This ends the contribution.
+  rpc Contribute(stream DataChunk) returns (stream ContributeResponse);
+}
+
+// ContributeResponse defines possible messages streamed by the server to the client.
+message ContributeResponse {
+  oneof response {
+    Hello hello = 1;
+    // TurnNotification notifies the client when it's their turn to contribute.
+    TurnNotification turn = 2;
+    // ValidationResponse inform the client if their contribution was accepted.
+    ValidationResponse validation = 3;
+    // DataChunk contains the last verified contribution accepted by the server.
+    DataChunk lastContribution = 4;
+  }
+}
+
+// Hello is sent once by the server when Contribute is first called.
+message Hello {
+  // ceremonyName is a human-readable name of the ceremony for identification purposes.
+  string ceremonyName = 1;
+}
+
+// TurnNotification notifies the client when it's their turn to contribute.
+message TurnNotification {
+  // canContribute is true if the client is now allowed to contribute.
+  bool canContribute = 1;
+  // positionInQueue updates the client's current position in queue.
+  // If positionInQueue == 0, this is the client's turn.
+  uint32 positionInQueue = 2;
+}
+
+// DataChunk contains a chunk of data sent between client and server.
+message DataChunk {
+  bytes data = 1;
+}
+
+// UploadResponse is sent by the server to the client after they submit their contribution.
+message ValidationResponse {
+  // isValid is true if the contribution was considered valid and was accepted by server.
+  bool isValid = 1;
+  // rejectionReason contains the reason of the rejection, if server does not accept client's contribution.
+  // Valid only if isValid == false.
+  string rejectionReason = 2;
+}
