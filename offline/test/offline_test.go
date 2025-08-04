@@ -125,7 +125,7 @@ func testPtau(t *testing.T) {
 	p1beforeContribution, err := phase1.FromFile(phase1FileName)
 	assert.NoError(t, err)
 	p1.Contribute()
-	err = p1beforeContribution.Verify(&p1)
+	err = p1beforeContribution.Verify(p1)
 	assert.NoError(t, err)
 }
 
@@ -198,6 +198,6 @@ func testProveAndVerify(t *testing.T) {
 	ccs, err := r1cs.FromFile(r1csFileName)
 	assert.NoError(t, err)
 
-	err = test_circuit.ProveAndVerify(ccs, pk, vk)
+	err = test_circuit.ProveAndVerify(ccs, &pk, &vk)
 	assert.NoError(t, err)
 }

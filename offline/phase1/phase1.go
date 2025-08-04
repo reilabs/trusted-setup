@@ -24,5 +24,5 @@ func FromPtau(ptauFilePath string, outputPhase1FilePath string) error {
 		return err
 	}
 
-	return ToFile(phase1, outputPhase1FilePath)
+	return ToFile(&phase1, outputPhase1FilePath)
 }

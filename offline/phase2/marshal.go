@@ -12,7 +12,7 @@ import (
 // ToFile writes the Phase 2 object provided in phase2 to a file specified by phase2Path.
 //
 // Returns nil on success and error on failure.
-func ToFile(phase2 mpcsetup.Phase2, phase2Path string) error {
+func ToFile(phase2 *mpcsetup.Phase2, phase2Path string) error {
 	writer, err := os.Create(phase2Path)
 	if err != nil {
 		return err
@@ -36,10 +36,10 @@ func ToFile(phase2 mpcsetup.Phase2, phase2Path string) error {
 // FromFile reads the Phase 2 object from the file specified by phase2Path and returns the Phase 2 object.
 //
 // Returns the Phase 2 object and nil on success and nil and error on failure.
-func FromFile(phase2Path string) (phase2 mpcsetup.Phase2, err error) {
+func FromFile(phase2Path string) (phase2 *mpcsetup.Phase2, err error) {
 	reader, err := os.Open(phase2Path)
 	if err != nil {
-		return mpcsetup.Phase2{}, err
+		return nil, err
 	}
 	defer func(reader *os.File) {
 		err := reader.Close()
@@ -49,9 +49,10 @@ func FromFile(phase2Path string) (phase2 mpcsetup.Phase2, err error) {
 	}(reader)
 
 	log.Printf("Loading Phase 2 from %s", phase2Path)
+	phase2 = &mpcsetup.Phase2{}
 	_, err = phase2.ReadFrom(reader)
 	if err != nil {
-		return mpcsetup.Phase2{}, err
+		return nil, err
 	}
 
 	return
@@ -61,7 +62,7 @@ func FromFile(phase2Path string) (phase2 mpcsetup.Phase2, err error) {
 // specified by srsCommonsPath.
 //
 // Returns nil on success and error on failure.
-func SrsCommonsToFile(srsCommons mpcsetup.SrsCommons, srsCommonsPath string) error {
+func SrsCommonsToFile(srsCommons *mpcsetup.SrsCommons, srsCommonsPath string) error {
 	writer, err := os.Create(srsCommonsPath)
 	if err != nil {
 		return err
@@ -86,10 +87,10 @@ func SrsCommonsToFile(srsCommons mpcsetup.SrsCommons, srsCommonsPath string) err
 // srsCommonsPath and returns the SrsCommons object.
 //
 // Returns the SrsCommons object and nil on success and nil and error on failure.
-func SrsCommonsFromFile(srsCommonsPath string) (srsCommons mpcsetup.SrsCommons, err error) {
+func SrsCommonsFromFile(srsCommonsPath string) (srsCommons *mpcsetup.SrsCommons, err error) {
 	reader, err := os.Open(srsCommonsPath)
 	if err != nil {
-		return mpcsetup.SrsCommons{}, err
+		return nil, err
 	}
 	defer func(reader *os.File) {
 		err := reader.Close()
@@ -99,9 +100,10 @@ func SrsCommonsFromFile(srsCommonsPath string) (srsCommons mpcsetup.SrsCommons, 
 	}(reader)
 
 	log.Printf("Loading SRS commons from %s", srsCommonsPath)
+	srsCommons = &mpcsetup.SrsCommons{}
 	_, err = srsCommons.ReadFrom(reader)
 	if err != nil {
-		return mpcsetup.SrsCommons{}, err
+		return nil, err
 	}
 
 	return

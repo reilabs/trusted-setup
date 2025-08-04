@@ -5,7 +5,7 @@ import (
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	native_mimc "github.com/consensys/gnark-crypto/ecc/bn254/fr/mimc"
 	"github.com/consensys/gnark/backend/groth16"
-	"github.com/consensys/gnark/constraint"
+	cs "github.com/consensys/gnark/constraint/bn254"
 	"github.com/consensys/gnark/frontend"
 	gnark_r1cs "github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/consensys/gnark/std/hash/mimc"
@@ -24,12 +24,13 @@ func (circuit *TestCircuit) Define(api frontend.API) error {
 	return nil
 }
 
-func BuildCcs() (constraint.ConstraintSystem, error) {
+func BuildCcs() (*cs.R1CS, error) {
 	circuit := &TestCircuit{}
-	return frontend.Compile(ecc.BN254.ScalarField(), gnark_r1cs.NewBuilder, circuit)
+	r1cs, err := frontend.Compile(ecc.BN254.ScalarField(), gnark_r1cs.NewBuilder, circuit)
+	return r1cs.(*cs.R1CS), err
 }
 
-func ProveAndVerify(ccs constraint.ConstraintSystem, pk groth16.ProvingKey, vk groth16.VerifyingKey) error {
+func ProveAndVerify(ccs *cs.R1CS, pk *groth16.ProvingKey, vk *groth16.VerifyingKey) error {
 	var preImage, hash fr.Element
 	m := native_mimc.NewMiMC()
 	_, err := m.Write(preImage.Marshal())
@@ -48,12 +49,12 @@ func ProveAndVerify(ccs constraint.ConstraintSystem, pk groth16.ProvingKey, vk g
 		return err
 	}
 
-	proof, err := groth16.Prove(ccs, pk, witness)
+	proof, err := groth16.Prove(ccs, *pk, witness)
 	if err != nil {
 		return err
 	}
 
-	err = groth16.Verify(proof, vk, pubWitness)
+	err = groth16.Verify(proof, *vk, pubWitness)
 	if err != nil {
 		return err
 	}

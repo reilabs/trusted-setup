@@ -7,14 +7,14 @@ import (
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/groth16"
-	"github.com/consensys/gnark/constraint"
+	cs "github.com/consensys/gnark/constraint/bn254"
 )
 
 // FromFile reads the R1CS constraint system from the file specified by r1csPath and returns the constraint system
 // object.
 //
 // Returns the constraint system object and nil on success and nil and error on failure.
-func FromFile(r1csPath string) (constraint.ConstraintSystem, error) {
+func FromFile(r1csPath string) (*cs.R1CS, error) {
 	reader, err := os.Open(r1csPath)
 	if err != nil {
 		return nil, err
@@ -33,5 +33,5 @@ func FromFile(r1csPath string) (constraint.ConstraintSystem, error) {
 		return nil, err
 	}
 
-	return r1cs, nil
+	return r1cs.(*cs.R1CS), nil
 }
