@@ -1,4 +1,4 @@
-package cmd
+package actions
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/reilabs/trusted-setup/phase2"
+	"github.com/reilabs/trusted-setup/offline/phase2"
 )
 
 func Phase2Verify(_ context.Context, cmd *cli.Command) error {

@@ -8,8 +8,8 @@ import (
 	"github.com/consensys/gnark/backend/groth16/bn254/mpcsetup"
 	cs "github.com/consensys/gnark/constraint/bn254"
 
-	"github.com/reilabs/trusted-setup/phase1"
-	"github.com/reilabs/trusted-setup/r1cs"
+	"github.com/reilabs/trusted-setup/offline/phase1"
+	"github.com/reilabs/trusted-setup/offline/r1cs"
 )
 
 // Init initializes the multi-party computation Phase 2 object based on a serialized Phase 1 and R1CS objects.
