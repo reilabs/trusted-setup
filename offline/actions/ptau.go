@@ -1,4 +1,4 @@
-package cmd
+package actions
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/reilabs/trusted-setup/phase1"
+	"github.com/reilabs/trusted-setup/offline/phase1"
 )
 
 func PtauToPhase1(_ context.Context, cmd *cli.Command) error {

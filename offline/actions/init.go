@@ -1,4 +1,4 @@
-package cmd
+package actions
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/reilabs/trusted-setup/phase2"
+	"github.com/reilabs/trusted-setup/offline/phase2"
 	"github.com/reilabs/trusted-setup/utils/randomness"
 )
 

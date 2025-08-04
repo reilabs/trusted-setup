@@ -1,4 +1,4 @@
-package test
+package test_test
 
 import (
 	"bytes"
@@ -11,9 +11,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/reilabs/trusted-setup/phase1"
-	"github.com/reilabs/trusted-setup/phase2"
-	"github.com/reilabs/trusted-setup/r1cs"
+	"github.com/reilabs/trusted-setup/offline/phase1"
+	"github.com/reilabs/trusted-setup/offline/phase2"
+	"github.com/reilabs/trusted-setup/offline/r1cs"
+	test_circuit "github.com/reilabs/trusted-setup/test"
 	"github.com/reilabs/trusted-setup/utils/randomness"
 )
 
@@ -46,7 +47,7 @@ const vkFileName = "test.vk"
 var rand randomness.MockProvider
 
 func setup() {
-	ccs, err := buildCcs()
+	ccs, err := test_circuit.BuildCcs()
 	if err != nil {
 		panic(err)
 	}
@@ -173,6 +174,6 @@ func testProveAndVerify(t *testing.T) {
 	ccs, err := r1cs.FromFile(r1csFileName)
 	assert.NoError(t, err)
 
-	err = proveAndVerify(ccs, pk, vk)
+	err = test_circuit.ProveAndVerify(ccs, pk, vk)
 	assert.NoError(t, err)
 }
