@@ -79,7 +79,7 @@ func Server(_ context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Generating keys...")
+	fmt.Printf("Generating keys out of %d contributions...", last.GetCount())
 	pk, vk := last.ExtractKeys()
 	return offline_phase2.PkVkToFile(pk, pkTemp, vk, vkTemp)
 }

@@ -17,6 +17,11 @@ import (
 
 type mockPhase2 struct {
 	phase2 bytes.Buffer
+	count  int
+}
+
+func (m *mockPhase2) GetCount() int {
+	return m.count
 }
 
 func (m *mockPhase2) NewVerifiable() contribution.Verifiable {
@@ -34,6 +39,7 @@ func (m *mockPhase2) AddContribution(next contribution.Verifiable) error {
 		return errors.New("malformed contribution")
 	}
 	_, err := m.phase2.Write(contribBuf.Bytes())
+	m.count++
 	return err
 }
 
@@ -104,12 +110,14 @@ func TestWriteLastContribution(t *testing.T) {
 
 func TestReadNextContribution(t *testing.T) {
 	coord := coordinator.New(&mockPhase2{}, &mockContributorsManager{})
+	assert.Equal(t, 0, coord.GetContributionsCount())
 
 	_ = coord.AddContributor(func(int) {})
 
 	goodContrib := bytes.NewBuffer(bytes.Repeat([]byte{0x21}, 0x37))
 	_, err := coord.ReadNextContribution(goodContrib)
 	assert.NoError(t, err)
+	assert.Equal(t, 1, coord.GetContributionsCount())
 
 	// Shortcut here - during the real ceremony the contributor would be
 	// removed from the queue, and we'd had to test bad contribution with
@@ -119,4 +127,5 @@ func TestReadNextContribution(t *testing.T) {
 	badContrib := bytes.NewBuffer([]byte{0x1, 0x01})
 	_, err = coord.ReadNextContribution(badContrib)
 	assert.Error(t, err)
+	assert.Equal(t, 1, coord.GetContributionsCount())
 }
