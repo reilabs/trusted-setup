@@ -80,7 +80,7 @@ func (s *ceremonyService) Contribute(
 		log.Printf("%s: %v", clientIp, err)
 		return stream.Send(api.NewValidationResponse(err))
 	}
-	log.Printf("Contribution from %s accepted", clientIp)
+	log.Printf("Contribution %d from %s accepted", s.coordinator.GetContributionsCount(), clientIp)
 
 	return stream.Send(api.NewValidationResponse(nil))
 }
