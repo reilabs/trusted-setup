@@ -15,6 +15,7 @@ type contribution struct {
 	srsCommons   *mpcsetup.SrsCommons
 	evals        *mpcsetup.Phase2Evaluations
 	beacon       []byte
+	count        int
 }
 
 // Verifiable is an interface for a contribution object that is going to be verified by a verifier.
@@ -59,6 +60,7 @@ type Contribution interface {
 	AddContribution(next Verifiable) error
 	ExtractKeys() (groth16.ProvingKey, groth16.VerifyingKey)
 	WriteTo(writer io.Writer) (int64, error)
+	GetCount() int
 }
 
 // New creates a new Contribution from a Phase 1 object, R1CS and beacon.
@@ -76,6 +78,7 @@ func New(phase1 *mpcsetup.Phase1, r1cs *cs.R1CS, beacon []byte) Contribution {
 		&srsCommons,
 		&evals,
 		beacon,
+		0,
 	}
 }
 
@@ -96,6 +99,7 @@ func (p *contribution) AddContribution(next Verifiable) error {
 		return err
 	}
 	p.contribution = next.(*contribution).contribution
+	p.count++
 	return nil
 }
 
@@ -112,4 +116,9 @@ func (p *contribution) ExtractKeys() (groth16.ProvingKey, groth16.VerifyingKey) 
 	// for every submitted contribution. It is enough to implement only the last step
 	// of mpcsetup.VerifyPhase2(), which is .Seal().
 	return p.contribution.Seal(p.srsCommons, p.evals, p.beacon)
+}
+
+// GetCount returns the number of contributions added to the contribution.
+func (p *contribution) GetCount() int {
+	return p.count
 }

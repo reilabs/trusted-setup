@@ -16,6 +16,7 @@ type Coordinator interface {
 	AddContributor(notify contributors_manager.OnPositionUpdate) contributors_manager.PositionUpdateNotifier
 	WriteLastContribution(client io.Writer) (int64, error)
 	ReadNextContribution(client io.Reader) (int64, error)
+	GetContributionsCount() int
 }
 
 type coordinator struct {
@@ -91,4 +92,9 @@ func (s *coordinator) ReadNextContribution(contributor io.Reader) (int64, error)
 	}
 
 	return n, nil
+}
+
+// GetContributionsCount returns the number of contributions added to the contribution.
+func (s *coordinator) GetContributionsCount() int {
+	return s.last.GetCount()
 }
