@@ -2,7 +2,6 @@ package actions
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -11,7 +10,6 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"github.com/reilabs/trusted-setup/offline/phase1"
-	offline_phase2 "github.com/reilabs/trusted-setup/offline/phase2"
 	"github.com/reilabs/trusted-setup/offline/r1cs"
 	server_config "github.com/reilabs/trusted-setup/online/config"
 	"github.com/reilabs/trusted-setup/online/contribution"
@@ -19,6 +17,7 @@ import (
 	"github.com/reilabs/trusted-setup/online/server/ceremony_service"
 	"github.com/reilabs/trusted-setup/online/server/contributors_manager"
 	"github.com/reilabs/trusted-setup/online/server/coordinator"
+	"github.com/reilabs/trusted-setup/online/storage"
 	"github.com/reilabs/trusted-setup/utils/randomness"
 )
 
@@ -45,9 +44,16 @@ func Server(_ context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
+	beacon := beaconProvider.GetBeacon()
+	log.Printf("Beacon: %x", beacon)
+
+	store := storage.NewTmpfs(config.CeremonyName)
 
 	log.Print("Initializing Phase 2")
-	last := contribution.New(p1, ccs, beaconProvider.GetBeacon())
+	last, err := contribution.New(p1, ccs, store, beacon)
+	if err != nil {
+		return err
+	}
 
 	service := ceremony_service.New(
 		config.CeremonyName,
@@ -66,34 +72,25 @@ func Server(_ context.Context, cmd *cli.Command) error {
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	fmt.Println("Press Ctrl+C to end Ceremony and generate Keys")
+	log.Println("Press Ctrl+C to end Ceremony and generate Keys")
 	<-sigs
 	s.Stop()
 
-	// TODO: this is temporary, keys will go to S3
-	pkTemp, err := getTempFilePath("pk")
+	if last.GetCount() > 0 {
+		log.Printf("Generating keys out of %d contributions...\n", last.GetCount())
+		_, _, err = last.ExtractKeys()
+	} else {
+		log.Printf("No contributions received")
+	}
+
+	log.Println("Artifacts generated in the ceremony:")
+	files, err := store.List()
 	if err != nil {
 		return err
 	}
-	vkTemp, err := getTempFilePath("vk")
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Generating keys out of %d contributions...", last.GetCount())
-	pk, vk := last.ExtractKeys()
-	return offline_phase2.PkVkToFile(pk, pkTemp, vk, vkTemp)
-}
-
-func getTempFilePath(pattern string) (string, error) {
-	tempFile, err := os.CreateTemp("", pattern)
-	if err != nil {
-		return "", err
-	}
-	// Close immediately because we're not writing to these files, we just need paths
-	err = tempFile.Close()
-	if err != nil {
-		log.Printf("error closing %s", tempFile.Name())
+	for _, file := range files {
+		log.Println("\t" + file)
 	}
 
-	return tempFile.Name(), nil
+	return err
 }

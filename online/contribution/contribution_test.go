@@ -41,12 +41,13 @@ func Test(t *testing.T) {
 	ccs, p1, beacon := setup()
 
 	// Initialize Phase 2 from Phase 1, circuit constraint system and random beacon
-	p2 := contribution.New(p1, ccs, beacon)
+	p2, err := contribution.New(p1, ccs, nil, beacon)
+	assert.NoError(t, err)
 	assert.Equal(t, 0, p2.GetCount())
 
 	// Serialize initial Phase 2 to a buffer
 	var buf bytes.Buffer
-	_, err := p2.WriteTo(&buf)
+	_, err = p2.WriteTo(&buf)
 	assert.NoError(t, err)
 
 	// Recreate the initial contribution from a buffer
@@ -63,7 +64,8 @@ func Test(t *testing.T) {
 	assert.Equal(t, 1, p2.GetCount())
 
 	// One contribution should be enough to generate keys
-	pk, vk := p2.ExtractKeys()
+	pk, vk, err := p2.ExtractKeys()
+	assert.NoError(t, err)
 
 	// Check that keys can be used for proof generation and verification
 	teardown(ccs, &pk, &vk)

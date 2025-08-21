@@ -43,7 +43,7 @@ func (m *mockPhase2) AddContribution(next contribution.Verifiable) error {
 	return err
 }
 
-func (m *mockPhase2) ExtractKeys() (groth16.ProvingKey, groth16.VerifyingKey) {
+func (m *mockPhase2) ExtractKeys() (groth16.ProvingKey, groth16.VerifyingKey, error) {
 	// Not necessary for this test
 	panic("not implemented")
 }
