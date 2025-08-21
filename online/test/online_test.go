@@ -3,12 +3,15 @@ package online_test
 import (
 	"bytes"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
+	"github.com/consensys/gnark/backend/groth16/bn254/mpcsetup"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/reilabs/trusted-setup/offline/phase1"
+	offline_phase2 "github.com/reilabs/trusted-setup/offline/phase2"
 	"github.com/reilabs/trusted-setup/offline/r1cs"
 	"github.com/reilabs/trusted-setup/online/client"
 	server_config "github.com/reilabs/trusted-setup/online/config"
@@ -17,6 +20,7 @@ import (
 	"github.com/reilabs/trusted-setup/online/server/ceremony_service"
 	"github.com/reilabs/trusted-setup/online/server/contributors_manager"
 	"github.com/reilabs/trusted-setup/online/server/coordinator"
+	"github.com/reilabs/trusted-setup/online/storage"
 	test_circuit "github.com/reilabs/trusted-setup/test"
 )
 
@@ -31,11 +35,14 @@ func TestOnlineCeremony(t *testing.T) {
 	t.Run("Run contributions", testRunContributions)
 	t.Run("Stop server", testStopServer)
 	t.Run("Extract keys, prove and verify", testProveAndVerifyOnline)
+	t.Run("Extract keys, prove and verify (offline)", testProveAndVerifyFromFiles)
 }
 
 var serv *server.CeremonyServer
 var config *server_config.Config
 var last contribution.Contribution
+var store storage.Storage
+var beacon []byte
 
 func testStartServer(t *testing.T) {
 	var err error
@@ -49,9 +56,10 @@ func testStartServer(t *testing.T) {
 	p1, err := phase1.FromFile(config.Phase1)
 	assert.NoError(t, err)
 
-	beacon := bytes.Repeat([]byte{0x42}, 32)
-
-	last = contribution.New(p1, ccs, beacon)
+	beacon = bytes.Repeat([]byte{0x42}, 32)
+	store = storage.NewTmpfs(config.CeremonyName)
+	last, err = contribution.New(p1, ccs, store, beacon)
+	assert.NoError(t, err)
 
 	service := ceremony_service.New(config.CeremonyName, coordinator.New(last, contributors_manager.New()))
 
@@ -102,7 +110,37 @@ func testProveAndVerifyOnline(t *testing.T) {
 	ccs, err := r1cs.FromFile(config.R1cs)
 	assert.NoError(t, err)
 
-	pk, vk := last.ExtractKeys()
+	pk, vk, err := last.ExtractKeys()
+	assert.NoError(t, err)
+
+	err = test_circuit.ProveAndVerify(ccs, &pk, &vk)
+	assert.NoError(t, err)
+}
+
+func testProveAndVerifyFromFiles(t *testing.T) {
+	ccs, err := r1cs.FromFile(config.R1cs)
+	assert.NoError(t, err)
+
+	var phase2s []*mpcsetup.Phase2
+	for _, f := range store.List() {
+		if strings.Contains(f, "phase2-") {
+			p2, err := offline_phase2.FromFile(f)
+			assert.NoError(t, err)
+			phase2s = append(phase2s, p2)
+		}
+	}
+
+	var srs *mpcsetup.SrsCommons
+	for _, f := range store.List() {
+		if strings.Contains(f, "srs-commons") {
+			srs, err = offline_phase2.SrsCommonsFromFile(f)
+			assert.NoError(t, err)
+		}
+	}
+
+	pk, vk, err := mpcsetup.VerifyPhase2(ccs, srs, beacon, phase2s...)
+	assert.NoError(t, err)
+
 	err = test_circuit.ProveAndVerify(ccs, &pk, &vk)
 	assert.NoError(t, err)
 }
