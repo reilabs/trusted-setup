@@ -9,11 +9,16 @@ import (
 )
 
 type Config struct {
-	CeremonyName string `json:"ceremonyName"`
-	Host         string `json:"host"`
-	Port         int    `json:"port"`
-	R1cs         string `json:"r1cs"`
-	Phase1       string `json:"phase1"`
+	CeremonyName      string `json:"ceremonyName"`
+	Host              string `json:"host"`
+	Port              int    `json:"port"`
+	R1cs              string `json:"r1cs"`
+	Phase1            string `json:"phase1"`
+	UseS3             bool   `json:"useS3"`
+	S3Bucket          string `json:"s3Bucket"`
+	S3Region          string `json:"s3Region"`
+	S3Profile         string `json:"s3Profile"`
+	S3CredentialsFile string `json:"s3CredentialsFile"`
 }
 
 func (c *Config) Validate() error {
