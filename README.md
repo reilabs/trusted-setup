@@ -15,6 +15,7 @@
       * [`ptau`](#ptau)
     * [Online mode commands](#online-mode-commands)
       * [`server`](#server)
+        * [Using AWS S3 for artifacts storage](#using-aws-s3-for-artifacts-storage)
       * [`client`](#client)
     * [Offline mode commands](#offline-mode-commands)
       * [`init`](#init)
@@ -22,9 +23,6 @@
       * [`verify`](#verify)
       * [`extract-keys`](#extract-keys)
 <!-- TOC -->
-
-**Warning**
-Please note that this tool is under development. Please consider it unusable before the first release.
 
 ## Overview
 This utility program allows for performing a Trusted Setup Ceremony in a Multi-Party Computation fashion. It is meant
@@ -170,6 +168,21 @@ The server is configured with a JSON file. An example configuration is shown bel
   "r1cs": "resources/server.r1cs",
   // The path to the Phase 1 file (possibly generated from a ptau file - see the `ptau` command for details).
   "phase1": "resources/server.ph1",
+  // (optional) If true, AWS S3 is chosen as the storage backend. If false or not present,
+  // the server will fall back to storing artifacts in tmpfs.
+  "useS3": true,
+  // (optional) Name of the AWS S3 bucket to store ceremony artifacts. The bucket must exist.
+  // If not provided, this information is taken from a default source (env or AWS CLI config file).
+  "s3Bucket": "my-ceremony-bucket",
+  // (optional) Region of the AWS S3 bucket to store ceremony artifacts.
+  // If not provided, this information is taken from a default source (env or AWS CLI config file).
+  "s3Region": "us-east-1",
+  // (optional) Profile of the AWS S3 bucket to store ceremony artifacts.
+  // If not provided, this information is taken from a default source (env or AWS CLI config file).
+  "s3Profile": "test",
+  // (optional) Credentials file for AWS S3.
+  // If not provided, this information is taken from a default source (env or AWS CLI config file).
+  "s3CredentialsFile": "~/.aws/credentials",
 }
 ```
 
@@ -177,7 +190,109 @@ Coordination of the ceremony is automatic. No action from the Coordinator is req
 and stopping it with CTRL+C at any arbitrary moment. At CTRL+C, the server stops accepting new contributions and starts
 key extraction from the existing contributions.
 
+At the end of the contribution, the artifacts are either saved in the temporary filesystem or in the AWS S3, depending
+on the provided configuration. The stored artifacts are:
+- SRS commons of the circuit,
+- all intermediate Phase 2 files,
+- Proving Key,
+- Verifying Key,
+- JSON structured log documenting the ceremony.
+
+These artifacts are enough to re-generate the keys again using the offline mode [`extract-keys`](#extract-keys) command.
+
 - `--config` - Path to a JSON file containing the server configuration.
+
+Example usage:
+
+```shell
+$ ./trusted-setup server --config small.json
+2025/09/02 00:33:00 Loading config file: small.json
+2025/09/02 00:33:00 Loading R1CS from online/test/resources/server.r1cs
+2025/09/02 00:33:00 Loading Phase 1 from online/test/resources/server.ph1
+2025/09/02 00:33:01 INF beacon=a40d1701974c7e804732d3bf21131137f6b05dc054b073d0e48110ed2099f11c
+2025/09/02 00:33:01 Ceremony artifacts will be stored in tmpfs
+2025/09/02 00:33:01 Initializing Phase 2
+2025/09/02 00:33:02 INF new ceremony started name=testCeremony
+2025/09/02 00:33:02 Server started, waiting for Contributors on 127.0.0.1:7312...
+2025/09/02 00:33:02 Press Ctrl+C to end Ceremony and generate Keys
+2025/09/02 00:33:09 INF new contributor connected ip=127.0.0.1:64624
+2025/09/02 00:33:09 INF contributor position update ip=127.0.0.1:64624 newQueuePosition=0
+2025/09/02 00:33:09 INF sending last accepted contribution ip=127.0.0.1:64624
+2025/09/02 00:33:09 INF sent last accepted contribution ip=127.0.0.1:64624 size=27147
+2025/09/02 00:33:09 INF receiving new contribution candidate ip=127.0.0.1:64624
+2025/09/02 00:33:09 INF new contribution candidate accepted ip=127.0.0.1:64624 size=27179
+^C2025/09/02 00:33:15 Generating keys out of 1 contributions...
+2025/09/02 00:33:15 Artifacts generated in the ceremony:
+2025/09/02 00:33:15     /var/folders/jh/bj77hlmj3k50qyxt3tzlbrwc0000gn/T/testCeremony-srs-commons-1639893806
+2025/09/02 00:33:15     /var/folders/jh/bj77hlmj3k50qyxt3tzlbrwc0000gn/T/testCeremony-phase2-1-3080991318
+2025/09/02 00:33:15     /var/folders/jh/bj77hlmj3k50qyxt3tzlbrwc0000gn/T/testCeremony-pk-2115635955
+2025/09/02 00:33:15     /var/folders/jh/bj77hlmj3k50qyxt3tzlbrwc0000gn/T/testCeremony-vk-2427354540
+2025/09/02 00:33:15     /var/folders/jh/bj77hlmj3k50qyxt3tzlbrwc0000gn/T/testCeremony-log-454330672
+2025/09/02 00:33:15 Operation successful
+```
+
+Example structured JSON log from the above ceremony:
+
+```json
+{"level":"info","beacon":"a40d1701974c7e804732d3bf21131137f6b05dc054b073d0e48110ed2099f11c","time":"2025-09-02T00:33:01+02:00"}
+{"level":"info","name":"testCeremony","time":"2025-09-02T00:33:02+02:00","message":"new ceremony started"}
+{"level":"info","ip":"127.0.0.1:64624","time":"2025-09-02T00:33:09+02:00","message":"new contributor connected"}
+{"level":"info","newQueuePosition":0,"ip":"127.0.0.1:64624","time":"2025-09-02T00:33:09+02:00","message":"contributor position update"}
+{"level":"info","ip":"127.0.0.1:64624","time":"2025-09-02T00:33:09+02:00","message":"sending last accepted contribution"}
+{"level":"info","ip":"127.0.0.1:64624","size":27147,"time":"2025-09-02T00:33:09+02:00","message":"sent last accepted contribution"}
+{"level":"info","ip":"127.0.0.1:64624","time":"2025-09-02T00:33:09+02:00","message":"receiving new contribution candidate"}
+{"level":"info","ip":"127.0.0.1:64624","size":27179,"time":"2025-09-02T00:33:09+02:00","message":"new contribution candidate accepted"}
+```
+
+##### Using AWS S3 for artifacts storage
+
+The server can store the ceremony artifacts in AWS S3.
+
+AWS S3 is chosen as the storage backend if `useS3` configuration field is set to `true`. If the field is `false` or not
+present, the server will use tmpfs for storage. Some S3 settings can be overridden. See [`server`](#server)
+for the details on the configuration file.
+
+AWS S3 credentials are loaded from the credentials file. This file is automatically generated by the
+[AWS CLI tool](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html). The file can be
+generated as follows:
+
+```shell
+$ aws configure --profile <profile name>
+AWS Access Key ID [None]: <ID>
+AWS Secret Access Key [None]: <key>
+Default region name [None]: <region name>
+Default output format [None]:
+```
+
+After the ceremony, the bucket can be queried as follows:
+
+```shell
+$ AWS_PROFILE=test aws s3 ls s3://ceremony-bucket
+2025-09-02 01:58:10        998 log
+2025-09-02 01:58:05      27179 phase2-1
+2025-09-02 01:58:09      59955 pk
+2025-09-02 01:58:04      98248 srs-commons
+2025-09-02 01:58:10        364 vk
+```
+
+Artifacts can be downloaded as follows:
+
+```shell
+$ AWS_PROFILE=test aws s3 cp s3://ceremony-bucket/ ceremony_artifacts --recursive
+download: s3://ceremony-bucket/log to ceremony_artifacts/log
+download: s3://ceremony-bucket/vk to ceremony_artifacts/vk
+download: s3://ceremony-bucket/phase2-1 to ceremony_artifacts/phase2-1
+download: s3://ceremony-bucket/pk to ceremony_artifacts/pk
+download: s3://ceremony-bucket/srs-commons to ceremony_artifacts/srs-commons
+
+$ ls -l ceremony_artifacts
+total 384
+-rw-r--r--@ 1 user  group    998 Sep  2 01:58 log
+-rw-r--r--@ 1 user  group  27179 Sep  2 01:58 phase2-1
+-rw-r--r--@ 1 user  group  59955 Sep  2 01:58 pk
+-rw-r--r--@ 1 user  group  98248 Sep  2 01:58 srs-commons
+-rw-r--r--@ 1 user  group    364 Sep  2 01:58 vk
+```
 
 #### `client`
 
