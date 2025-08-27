@@ -3,8 +3,8 @@ package ceremony_service
 
 import (
 	"context"
-	"log"
 
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc/peer"
 
 	"github.com/reilabs/trusted-setup/online/api"
@@ -17,17 +17,25 @@ type ceremonyService struct {
 
 	name        string
 	coordinator coordinator.Coordinator
+	log         *zerolog.Logger
 }
 
 // New returns a new instance of CeremonyServiceServer.
 //
-// # The returned object can be passed to the gRPC server constructor
+// Accepts a name of the ceremony, ceremony coordinator instance and a logger.
+// The ceremony name is sent to contributors after they connect.
+// The coordinator keeps track of incoming contributions, accepts new contribution
+// candidates and validates them.
+// The logger will accept log entries with crucial steps of the ceremony, that can
+// be useful during attestation or keys recovery.
 //
-// Accepts a name of the ceremony and a ceremony coordinator instance.
+// The returned object can be passed to the gRPC server constructor
 func New(
-	name string, coordinator coordinator.Coordinator,
+	name string, coordinator coordinator.Coordinator, log *zerolog.Logger,
 ) api.CeremonyServiceServer {
-	return &ceremonyService{name: name, coordinator: coordinator}
+	log.Info().Str("name", name).Msg("new ceremony started")
+
+	return &ceremonyService{name: name, coordinator: coordinator, log: log}
 }
 
 func clientAddressFromContext(ctx context.Context) string {
@@ -40,47 +48,65 @@ func clientAddressFromContext(ctx context.Context) string {
 	return clientIP
 }
 
-func onContributorPositionUpdate(newPosition int, clientIp string, stream api.CeremonyService_ContributeServer) {
-	log.Printf("contributor %s got slot %d in the queue", clientIp, newPosition)
-	if err := stream.Send(api.NewTurnNotification(newPosition)); err != nil {
-		log.Printf("failed to send position update to %s: %v", clientIp, err)
-	}
-}
-
 // Contribute implements the flow of a single contribution coming from a contributor client.
 func (s *ceremonyService) Contribute(
 	stream api.CeremonyService_ContributeServer,
 ) error {
+	clientIp := clientAddressFromContext(stream.Context())
+	s.log.Info().
+		Str("ip", clientIp).
+		Msg("new contributor connected")
+
 	err := stream.Send(api.NewHello(s.name))
 	if err != nil {
 		return err
 	}
 
-	clientIp := clientAddressFromContext(stream.Context())
 	waitForThisContributorsTurn := s.coordinator.AddContributor(
 		func(newPosition int) {
-			onContributorPositionUpdate(newPosition, clientIp, stream)
+			err = stream.Send(api.NewTurnNotification(newPosition))
+			s.log.Info().
+				Int("newQueuePosition", newPosition).
+				Str("ip", clientIp).
+				Err(err).
+				Msg("contributor position update")
 		},
 	)
 
 	waitForThisContributorsTurn()
 
-	log.Printf("Sending last contribution to %s", clientIp)
+	s.log.Info().
+		Str("ip", clientIp).
+		Msg("sending last accepted contribution")
 	n, err := s.coordinator.WriteLastContribution(stream_utils.NewStreamWriter(stream))
 	if err != nil {
-		log.Printf("error sending last contribution to %s", clientIp)
+		s.log.Info().
+			Str("ip", clientIp).
+			Err(err)
 		return err
 	}
-	log.Printf("Sent %d bytes", n)
+	s.log.Info().
+		Str("ip", clientIp).
+		Int64("size", n).
+		Msg("sent last accepted contribution")
 
-	log.Printf("Contribution to be received from %s", clientIp)
+	s.log.Info().
+		Str("ip", clientIp).
+		Msg("receiving new contribution candidate")
 	n, err = s.coordinator.ReadNextContribution(stream_utils.NewStreamReader(stream))
-	log.Printf("Received %d bytes", n)
 	if err != nil {
-		log.Printf("%s: %v", clientIp, err)
+		s.log.Info().
+			Str("ip", clientIp).
+			Int64("size", n).
+			Err(err).
+			Msg("new contribution candidate rejected")
 		return stream.Send(api.NewValidationResponse(err))
 	}
-	log.Printf("Contribution %d from %s accepted", s.coordinator.GetContributionsCount(), clientIp)
+
+	s.log.Info().
+		Str("ip", clientIp).
+		Int64("size", n).
+		Msg("new contribution candidate accepted")
 
 	return stream.Send(api.NewValidationResponse(nil))
 }
