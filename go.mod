@@ -6,7 +6,7 @@ require (
 	github.com/consensys/gnark v0.13.0
 	github.com/consensys/gnark-crypto v0.18.0
 	github.com/drand/go-clients v0.2.3
-	github.com/golang/protobuf v1.5.4
+	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v3 v3.3.8
 	github.com/worldcoin/ptau-deserializer v0.2.0
@@ -43,8 +43,6 @@ require (
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/procfs v0.17.0 // indirect
 	github.com/ronanh/intcomp v1.1.1 // indirect
-	github.com/rs/zerolog v1.34.0 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.dedis.ch/fixbuf v1.0.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
