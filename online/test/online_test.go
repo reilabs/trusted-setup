@@ -2,12 +2,14 @@ package online_test
 
 import (
 	"bytes"
+	"io"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
 
 	"github.com/consensys/gnark/backend/groth16/bn254/mpcsetup"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/reilabs/trusted-setup/offline/phase1"
@@ -61,7 +63,8 @@ func testStartServer(t *testing.T) {
 	last, err = contribution.New(p1, ccs, store, beacon)
 	assert.NoError(t, err)
 
-	service := ceremony_service.New(config.CeremonyName, coordinator.New(last, contributors_manager.New()))
+	muteLogger := zerolog.New(io.Discard)
+	service := ceremony_service.New(config.CeremonyName, coordinator.New(last, contributors_manager.New()), &muteLogger)
 
 	serv = server.New(service)
 

@@ -2,11 +2,13 @@ package actions
 
 import (
 	"context"
+	"io"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v3"
 
 	"github.com/reilabs/trusted-setup/offline/phase1"
@@ -40,12 +42,25 @@ func Server(_ context.Context, cmd *cli.Command) error {
 		return err
 	}
 
+	logFile, err := os.CreateTemp("", "")
+	if err != nil {
+		return err
+	}
+	defer func(logFile *os.File) {
+		err = logFile.Close()
+		if err != nil {
+			log.Printf("Error closing log file writer: %v", err)
+		}
+	}(logFile)
+	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006/01/02 15:04:05"}
+	ceremonyLogger := zerolog.New(io.MultiWriter(consoleWriter, logFile)).With().Timestamp().Logger()
+
 	beaconProvider, err := randomness.New()
 	if err != nil {
 		return err
 	}
 	beacon := beaconProvider.GetBeacon()
-	log.Printf("Beacon: %x", beacon)
+	ceremonyLogger.Info().Hex("beacon", beacon).Send()
 
 	store := storage.NewTmpfs(config.CeremonyName)
 
@@ -61,6 +76,7 @@ func Server(_ context.Context, cmd *cli.Command) error {
 			last,
 			contributors_manager.New(),
 		),
+		&ceremonyLogger,
 	)
 
 	s := server.New(service)
@@ -81,6 +97,14 @@ func Server(_ context.Context, cmd *cli.Command) error {
 		_, _, err = last.ExtractKeys()
 	} else {
 		log.Printf("No contributions received")
+	}
+
+	_, err = logFile.Seek(0, 0)
+	if err != nil {
+		log.Printf("Rewinding log file failed")
+	}
+	if _, err = store.Save("log", logFile); err != nil {
+		log.Printf("Storing ceremony log failed")
 	}
 
 	log.Println("Artifacts generated in the ceremony:")
