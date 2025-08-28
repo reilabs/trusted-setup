@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"io"
 	"log"
 
@@ -25,15 +26,14 @@ func (s *S3) Save(id string, obj io.WriterTo) (string, error) {
 			pipeWriter.CloseWithError(err)
 		}
 	}()
-	_, err := s.client.PutObject(
-		context.TODO(), &s3.PutObjectInput{
-			Bucket:      &s.bucket,
-			Key:         &id,
-			Body:        pipeReader,
-			ContentType: aws.String("application/octet-stream"),
-			// TODO ACL?
-		},
-	)
+
+	uploader := manager.NewUploader(s.client)
+
+	_, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
+		Bucket: &s.bucket,
+		Key:    &id,
+		Body:   pipeReader,
+	})
 	if err != nil {
 		log.Fatalf("failed to upload file, %v", err)
 	}
@@ -43,7 +43,11 @@ func (s *S3) Save(id string, obj io.WriterTo) (string, error) {
 
 func NewS3(bucket, region string) *S3 {
 	// Load the Shared AWS Configuration (~/.aws/config)
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	cfg, err := config.LoadDefaultConfig(
+		context.TODO(),
+		config.WithRegion(region),
+		config.WithSharedConfigProfile("test"),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
